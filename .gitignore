@@ -1,0 +1,9 @@
+# PDF files (too large for git, download via URLs in REPORTs)
+*.pdf
+
+# OS files
+.DS_Store
+.obsidian/
+
+# Claude project config
+.claude/
