@@ -1,0 +1,276 @@
+Loading [MathJax]/jax/element/mml/optable/BasicLatin.js
+科学空间|Scientific Spaces
+登录 打赏公式天象链接时光博览归档
+渴望成为一个小飞侠
+
+欢迎订阅
+
+个性邮箱
+
+天象信息
+
+观测ISS
+
+LaTeX
+
+关于博主
+
+欢迎访问“科学空间”，这里将与您共同探讨自然科学，回味人生百态；也期待大家的分享～
+
+千奇百怪
+Everything
+天文探索
+Astronomy
+数学研究
+Mathematics
+物理化学
+Phy-chem
+信息时代
+Big-Data
+生物自然
+Biology
+图片摄影
+Photograph
+问题百科
+Questions
+生活/情感
+Life-Feeling
+资源共享
+Resources
+首页 信息时代 MuP之上：1. 好模型的三个特征
+21
+Oct
+MuP之上：1. 好模型的三个特征
+By 苏剑林 | 2025-10-21 | 28070位读者 |    
+
+不知道大家有没有发现一个有趣的细节，Muon和MuP都是“Mu”开头，但两个“Mu”的原意完全不一样，前者是“MomentUm Orthogonalized by Newton-Schulz”，后者是“Maximal Update Parametrization”，可它们俩之间确实有着非常深刻的联系。也就是说，Muon和MuP有着截然不同的出发点，但最终都走向了相同的方向，甚至无意间取了相似的名字，似乎真应了那句“冥冥中自有安排”。
+
+言归正传。总之，笔者在各种机缘巧合之下，刚好同时学习到了Muon和MuP，这大大加深了笔者对模型优化的理解，同时也让笔者开始思考关于模型优化更本质的原理。经过一段时间的试错，算是有些粗浅的收获，在此跟大家分享一下。
+
+写在前面 #
+
+按照提出时间的先后顺序，是先有MuP再有Muon，但笔者的学习顺序正好反过来，先学习了Muon然后再学习MuP，事后来看，这也不失为一个不错的学习顺序。
+
+在《Muon优化器赏析：从向量到矩阵的本质跨越》、《Muon续集：为什么我们选择尝试Muon？》等文章中，我们将Muon描述为“谱范数约束下的最速下降”，而MuP系列工作则正好能够解释“为什么需要谱范数约束”，两者正好完美地衔接了起来。
+
+这里特别说明一下，我们说的MuP，它有两个含义：一是《初探MuP：超参数的跨模型尺度迁移规律》介绍的，属于Tensor Programs系列工作的一部分，我们称为“初阶MuP”；二是《高阶MuP：更简明但更高明的谱条件缩放》介绍的，我们称为“高阶MuP”，它以一种更简明的方式得到了比初阶MuP更丰富的结论——它们都是Greg Yang的工作（致敬大佬）。
+
+本文所提的MuP，如无说明都是指“高阶MuP”。事实上，本系列文章，笔者称为“MuP之上（Beyond MuP）”，也是在高阶MuP基础上进行的一系列思考和拓展。但对于一些读者来说，他们所了解的MuP，可能是Tensor Programs系列的“初阶MuP”，所以咋看之下可能会发出MuP怎么能够回答“为什么需要谱范数”的疑惑。
+
+不论如何，笔者会尽量让这个系列能够自成体系，所以尽管我们在介绍过程中会提及很多相关论文或博客，但读者并不需要精读所有内容。
+
+稳中求快 #
+
+再次言归正传。作为第一篇文章，本文的任务是把核心目标定下来，更具体点，是想清楚“我们究竟想要一个怎样的模型”，以及“怎样才能把这个模型训出来”。
+
+直观来想，只要模型没有出现崩溃的迹象，那么我们就可以一直训下去，直至收敛到我们满意的效果；在这个基础上，我们又会试图寻找让模型收敛得更快的方法。所以说白了，无非就“稳”和“快”两件事，或者说“稳中求快”一件事。那么，怎么判断模型稳不稳呢？这自然少不了要监控各种“内科指标”，监控得越多，越能暴露出问题。
+
+不过，这里不打算罗列各种内科指标，而是试图寻找最核心或者说最必要的几个条件。为此，我们先定义一个概念——RMS（Root Mean Square）：设x=(x1,x2,⋯,xd)∈Rd，那么定义
+
+‖x‖RMS=
+√
+1
+
+
+d
+d
+∑
+
+i=1x
+2
+i
+=
+‖x‖2
+
+
+√
+d
+
+它代表每个元素的平均尺度，跟向量的模长‖x‖2相差一个倍数
+√
+d
+。
+
+可能有读者想问，既然就差一个倍数，为什么不直接观察模长而是要新定义一个概念？这里有一些考虑，比如经常用RMSNorm、RMS比模长更容易感知等，此外还有一个重要原因是大部分激活函数都是Element-wise的，所以我们需要考察和控制平均到每个元素的尺度，以保证激活函数在不同模型中发挥着相近的作用。
+
+三个条件 #
+
+有了RMS的记号，就可以写出笔者认为稳定训练出一个好模型的三个最必要的条件：
+	前向稳定性:max
+其中\boldsymbol{f}(\boldsymbol{x};\boldsymbol{\omega})代表\mathbb{R}^{d_{in}}\mapsto \mathbb{R}^{d_{out}}的模型簇，输入\boldsymbol{x}\in\mathbb{R}^{d_{in}}，输出\boldsymbol{f}(\boldsymbol{x};\boldsymbol{\omega})\in\mathbb{R}^{d_{out}}，\boldsymbol{\omega}是模型参数，可以是标量/向量/矩阵等，\Theta是“Big Theta Notation”。这里的\boldsymbol{f}(\boldsymbol{x};\boldsymbol{\omega})可以是一个层、若干层组成的块甚至是整个模型，理论上，颗粒度越粗所得约束就越宽松或者说越准确，但\max的求解也越困难，所以这取决于我们计算\max的能力。
+
+在三个式子中，式\eqref{eq:c1}大概是最好理解的，它代表了前向计算的稳定性，对\boldsymbol{x}取\max后，变量就只剩\boldsymbol{\omega}了，所以这是关于\boldsymbol{\omega}的一个约束。请注意，这里我们并没有限制\boldsymbol{x}的取值，所以默认\boldsymbol{x}\in\mathbb{R}^{d_{in}}，那么最大值未必存在，如对于非零\boldsymbol{W}有\max\limits_{\boldsymbol{x}}\Vert \boldsymbol{x}\boldsymbol{W}\Vert_{RMS}\to\infty。
+
+为了保证最大值的存在性，我们通常要加一些Normalization操作，如：
+\begin{align} &\text{In Norm:}\quad \mathop{\text{Norm}}(\boldsymbol{x})\boldsymbol{W} \\[5pt] &\text{Out Norm:}\quad \mathop{\text{Norm}}(\boldsymbol{x}\boldsymbol{W}) \end{align}
+其中\mathop{\text{Norm}}(\boldsymbol{x})=\boldsymbol{x}/\Vert\boldsymbol{x}\Vert_{RMS}，即RMS Norm，当然也可以考虑其他的Normalization。所以，条件\eqref{eq:c1}也隐式地对模型架构提出了一些要求。类似地，式\eqref{eq:c2}则要求模型架构能平稳地依赖于输入。举个简单的例子，f(x;\omega)=x\times\omega\times 0 + 1，这个“模型”前向自然是很稳的，但它完全不依赖于x，式\eqref{eq:c2}就没法满足，所以它不是一个好模型。
+
+最后的式\eqref{eq:c3}应该也不难理解，对\boldsymbol{x}取了\max后后，结果是关于\boldsymbol{\omega}和\Delta\boldsymbol{\omega}的一个约束，它主要关注增量\Delta\boldsymbol{\omega}的影响，所以它代表了对训练平稳性的期望，我们可以用它来指导优化器的超参设置，甚至可以基于它来构建新的优化器。
+
+相关思考 #
+
+综上所述，式\eqref{eq:c1},\eqref{eq:c2},\eqref{eq:c3}三个条件，综合了模型架构、初始化、优化器等方面的考虑，很难说哪个条件可以去掉，所以笔者认为它们都是必须的。当然，就这三个条件而言，还有一些细节可以拿出来讨论一下，比如\max与\mathbb{E}的选择。
+
+在现在的式子中，我们通过取\max来“消去”了\boldsymbol{x}，得到只有\boldsymbol{\omega}和\Delta\boldsymbol{\omega}的式子，这一点可能大家会有疑问，对部分读者来说更符合直觉的做法可能是求数学期望\mathbb{E}_{\boldsymbol{x}}。为什么是\max不是\mathbb{E}？原因有不少。首先，求\max只需要给出\boldsymbol{x}的定义域，而求\mathbb{E}则需要定义\boldsymbol{x}的分布，不同分布结果不一样，而如何准确定义这个分布，并不是一件朴素的事情。
+
+其次，\max有个优点是对于单调变换的不变性，而\mathbb{E}没有这个性质，例如对于\max来说我们有恒等式(\max_{\boldsymbol{x}} \Vert \boldsymbol{f}(\boldsymbol{x};\boldsymbol{\omega})\Vert_{RMS})^2 = \max_{\boldsymbol{x}} \Vert \boldsymbol{f}(\boldsymbol{x};\boldsymbol{\omega})\Vert_{RMS}^2，即不管对\Vert \boldsymbol{f}(\boldsymbol{x};\boldsymbol{\omega})\Vert_{RMS}还是\Vert \boldsymbol{f}(\boldsymbol{x};\boldsymbol{\omega})\Vert_{RMS}^2求\max，本质上是一样的；但\mathbb{E}并不是这样，\Vert \boldsymbol{f}(\boldsymbol{x};\boldsymbol{\omega})\Vert_{RMS}的期望和\Vert \boldsymbol{f}(\boldsymbol{x};\boldsymbol{\omega})\Vert_{RMS}^2的期望在计算难度上通常不一样，结果也不一定有什么关联。
+
+因此，\max在概念和性质上都更为简便。一个可能的疑虑是\max会不会太苛刻，类似“充分不必要”条件？其实，\max只是直观说法，数学上叫做“上确界（\sup）”，“确”字表明这个值能达到的、紧凑的；而在实践中，均值跟最大值往往都是同一量级，而我们的目标只是\Theta(1)，所以区别不大。相反，\max兼顾了极端情形，最大程度上保证了训练稳定性，这对于LLM等大模型训练来说尤为重要。
+
+事实上，初阶MuP，或者说Tensor Programs系列，就是基于\mathbb{E}做的一系列分析，而高阶MuP，则跟本文一样，都是基于\max的分析。事后来看，基于\mathbb{E}的分析在计算的简便性、结果的通用性等方面，都不如基于\max的高阶MuP，这也反过来佐证了\max的有效性。
+
+文章小结 #
+
+从这篇文章开始，笔者会分享一些模型优化方面的自上而下的理解，它是在之前的“高阶MuP”基础上的延伸思考和拓展。作为第一篇文章，我们主要描述了关于模型稳定性的三个基本条件，或者说好模型的三个特征，它将是后面进行计算和分析的基石。
+
+转载到请包括本文地址：https://kexue.fm/archives/11340
+
+更详细的转载事宜请参考：《科学空间FAQ》
+
+如果您还有什么疑惑或建议，欢迎在下方评论区继续讨论。
+
+如果您觉得本文还不错，欢迎分享/打赏本文。打赏并非要从中获得收益，而是希望知道科学空间获得了多少读者的真心关注。当然，如果你无视它，也不会影响你的阅读。再次表示欢迎和感谢！
+
+打赏
+
+如果您需要引用本文，请参考：
+
+苏剑林. (Oct. 21, 2025). 《MuP之上：1. 好模型的三个特征 》[Blog post]. Retrieved from https://kexue.fm/archives/11340
+
+@online{kexuefm-11340,
+        title={MuP之上：1. 好模型的三个特征},
+        author={苏剑林},
+        year={2025},
+        month={Oct},
+        url={\url{https://kexue.fm/archives/11340}},
+}
+
+分类：信息时代    标签：优化, 优化器, 尺度定律, MuP
+6 评论
+< 随机矩阵的谱范数的快速估计 | 低精度Attention可能存在有偏的舍入误差 >
+你也许还对下面的内容感兴趣
+MuP之上：4. 坚守参数的稳定性
+基于流式幂迭代的Muon实现：5. 延伸
+基于流式幂迭代的Muon实现：4. 原理
+基于流式幂迭代的Muon实现：3. 雕琢
+基于流式幂迭代的Muon实现：2. 加速
+Attention Residuals 回忆录
+基于流式幂迭代的Muon实现：1. 初识
+MuP之上：3. 特殊情况特殊处理
+MoE环游记：7、动态激活极简解
+MoE环游记：6、最优分配促均衡
+发表你的看法
+yzlnew
+
+October 22nd, 2025
+
+可以相呼应的是，这样的好模型能被浮点数以误差比较低的方式表示和训练，并且也易于量化。
+
+回复评论
+苏剑林 发表于 October 24th, 2025
+
+精度也是一个视角，但感觉这个事情感觉得仔细分析一下，因为理论上来讲，整体乘一个大数字，是不改变相对精度的。
+
+回复评论
+yzlnew 发表于 April 28th, 2026
+
+嗯是的，我感觉是个不错的议题，类似羽毛球拍击球有甜区，数值计算可能也有这样的 sweet area，muP 会把计算都控制在这个区间内。
+
+回复评论
+yzlnew 发表于 April 28th, 2026
+
+并且可以解释 \mathrm{max} 优于 \mathbb{E} 的问题
+
+回复评论
+cmlin
+
+December 20th, 2025
+
+本人对这方面不太熟悉，想了解这三个条件的意义及动机，且希望这系列可以继续写下去。
+
+以下想发表一些看法（了解意义及动机后可能会有不同的看法）：
+1. 感觉前向稳定性想要表达的是 operator norm
+2. 而依赖稳定性像是对输入的 Lipschitzness
+感觉这边的定义不是那么好，
+3. 至于更新稳定性像是对参数的 Lipschitzness，根据个人在 optimization 的浅见，收敛速度可能会表现的比较差。
+
+回复评论
+苏剑林 发表于 December 26th, 2025
+
+有时间会继续写的，不过最近的精力并不在此，在此表示抱歉。
+
+这三个条件的意义在文章已有一定的讨论，我希望的效果是用同样的形式描述不同维度的条件，所以不是直接引入像“对输入的Lipschitzness”之类的说法。
+
+回复评论
+
+ 你的大名
+
+ 电子邮箱
+
+ 个人网站（选填）
+
+1. 可以使用LaTeX代码，点击“预览效果”可查看效果；
+2. 可以通过点击评论楼层编号来引用该楼层；
+3. 网站可能会有点卡，如非确认评论失败，请不要重复点击提交。
+
+ 
+
+内容速览
+写在前面
+稳中求快
+三个条件
+相关思考
+文章小结
+智能搜索
+支持整句搜索！网站自动使用结巴分词进行分词，并结合ngrams排序算法给出合理的搜索结果。
+热门标签
+生成模型 attention 优化 语言模型 模型 梯度 网站 概率 优化器 矩阵 转载 微分方程 分析 天象 深度学习 积分 python 几何 扩散 力学 无监督 节日 生活 文本生成 数论
+随机文章
+闲聊：神经网络与深度学习
+Transformer升级之路：5、作为无限维的线性Attention
+关于WhiteningBERT原创性的疑问和沟通
+2010年全国天文奥赛终于可以报名了
+德国女作家摘得2009诺贝尔文学奖
+新兴之旅结束了
+【备忘】访问Google的几个方式
+一道从小学到高中都可能考到的题目
+日食记
+等值振荡定理：最优多项式逼近的充要条件
+最近评论
+Weining Ren: 想请教一下苏老师，MLA根据prefill和decode阶段特性的精巧设计让我觉得叹为观止。但...
+yzlnew: 并且可以解释 \mathrm{max} 优于 \mathbb{E} 的问题
+高智涵: 我在GPT-2规模的模型上尝试 full attention residuals 加上 inp...
+yzlnew: 嗯是的，我感觉是个不错的议题，类似羽毛球拍击球有甜区，数值计算可能也有这样的 sweet ar...
+Aaron552: 苏神怎么看待Deepseek-V4的CSA机制中也用了一个shortconv: 计算当前m个t...
+苏剑林: 只要编码可逆就行。\boldsymbol{x}_t是由(17)构造而来的，又不是与生俱...
+苏剑林: 期待，希望能超越SCQR。
+苏剑林: 第一个问题，如果你这里的L是层数，那么O(L^2)的复杂度确实是无法避免的，这是所有密...
+苏剑林: 确实如此，但从直到本文的推导来说，这一簇解感觉本质上没有优劣之分。但是采样方差本身是可以从另外...
+YameChi: 苏老师，您好，编码模型部分，如果对x0编码到另一个数据域，这样和xt还可以构成公式（17）的关系吗
+友情链接
+Cool Papers
+数学研发
+Seatop
+Xiaoxia
+积分表-网络版
+丝路博傲
+数学之家
+有趣天文奇观
+TwistedW
+godweiyang
+AI柠檬
+王登科-DK博客
+ESON
+枫之羽
+coding-zuo
+博科园
+孔皮皮的博客
+运鹏的博客
+jiming.site
+OmegaXYZ
+EAI猩球
+文举的博客
+申请链接
+
+本站采用创作共用版权协议，要求署名、非商业用途和保持一致。转载本站内容必须也遵循“署名-非商业用途-保持一致”的创作共用协议。
+© 2009-2026 Scientific Spaces. All rights reserved. Theme by laogui. Powered by Typecho. 备案号: 粤ICP备09093259号-1/2。

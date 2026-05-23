@@ -50,17 +50,31 @@
 | Target Policy Optimization | [target-policy-optimization](target-policy-optimization/) | Constructs closed-form target distribution over scored candidates and fits via cross-entropy; gradient vanishes at convergence, outperforms GRPO under sparse reward on 1.7B LLMs |
 | SD-Zero | [sd-zero-self-distillation](sd-zero-self-distillation/) | Self-revision turns binary rewards into dense token-level supervision; +10.5% on Qwen3-4B over base, outperforms GRPO/RFT/SDFT with 1 response per question |
 | Search-R1 | [search-r1-rl-search-reasoning](search-r1-rl-search-reasoning/) | RL trains LLMs to autonomously issue multi-turn search queries during reasoning; retrieved token loss masking + outcome reward yields +24% over RAG on 7 QA benchmarks |
+| SFT-then-RL Outperforms Mixed-Policy | [sft-then-rl-outperforms-mixed-policy](sft-then-rl-outperforms-mixed-policy/) | Discovers DeepSpeed optimizer + OpenRLHF loss bugs that deflated SFT baselines in many papers; once fixed, plain SFT→RL beats all mixed-policy methods by +3.8-22.2 pts |
+| Co-Evolving Policy Distillation | [co-evolving-policy-distillation](co-evolving-policy-distillation/) | Interleaves branch-specific RLVR with bidirectional mutual on-policy distillation; unified Qwen3-VL-4B beats domain-specific experts on text, image, and video reasoning |
+| DORA: Async RL System for LLM Training | [dora-async-rl-training](dora-async-rl-training/) | Multi-version streaming training eliminates rollout bubbles from skewed generation; 2.12× end-to-end throughput (8.2× rollout speedup) via dynamic orchestration + zero-re-prefill KV-Cache reuse |
+| dTRPO: Trajectory Reduction for Diffusion LLM Alignment | [dtrpo-diffusion-llm-alignment](dtrpo-diffusion-llm-alignment/) | Proves policy ratios over dLLM trajectories reduce to products over newly-unmasked tokens (schedule cancels); enables DPO-cost offline training with 4 forward passes, +9.6% STEM on 7B dLLMs |
+| RPG: KL-Regularized Policy Gradient Design | [rpg-kl-regularized-policy-gradient](rpg-kl-regularized-policy-gradient/) | Unifies KL-regularized PG design space (fwd/rev, norm/unnorm, differentiable/REINFORCE); finds GRPO's KL missing importance weight; RPG-Style Clip achieves 52% AIME25 on 4B, beating Qwen3-4B-Instruct (47%) |
+| PrefixRL: Reuse FLOPs via Off-Policy Prefixes | [prefixrl-reuse-flops-offpolicy](prefixrl-reuse-flops-offpolicy/) | Conditions on-policy RL on prefixes of off-policy correct traces instead of supervising on them; discovers back-generalization (training on prefixed problems improves no-prefix accuracy); 2× compute efficiency, +23pt AIME '25 pass@1 |
 
 ## Architecture, Efficiency & Scaling
 *Making LLMs faster, smaller, or more capable*
 
 | Paper | Folder | One-Line Summary |
 |---|---|---|
+| ELF: Embedded Language Flows | [elf-embedded-language-flows](elf-embedded-language-flows/) | Continuous Flow Matching DLM in embedding space with final-step-only discretization; CFG + SDE sampling + x-prediction beats discrete DLMs (MDLM, Duo) at 32 steps with 10× fewer training tokens |
+| ViTok-v2: 5B Native Resolution AEs | [vitok-v2-scaling-native-resolution-ae](vitok-v2-scaling-native-resolution-ae/) | Largest ViT image autoencoder (4.5B decoder); DINOv3 perceptual loss replaces GAN/LPIPS for stable billion-scale training; NaFlex+RoPE+SWA enables 8K images; decoder scaling benefits generation beyond reconstruction |
+| TST: Token Superposition Training | [tst-token-superposition-training](tst-token-superposition-training/) | Average s consecutive embeddings + multi-hot CE loss for s× data throughput per FLOP during superposition phase; recovery to standard NTP is fast; 2.5× training speedup at 10B A1B MoE scale with no arch changes |
+| Pion: Spectrum-Preserving Optimizer | [pion-spectrum-preserving-optimizer](pion-spectrum-preserving-optimizer/) | Updates weights via left/right orthogonal transforms preserving all singular values; Lie algebra momentum + RMS scaling; flat stability indicators, normalization-free training, best RLVR performance vs AdamW/Muon |
+| SANA-WM: Minute-Scale World Model | [sana-wm-world-model](sana-wm-world-model/) | 2.6B world model: 60s 720p with 6-DoF camera control on single GPU; hybrid frame-wise GDN + softmax attention; dual UCPE + Plücker conditioning; 36× faster than LingBot-World at comparable quality |
+| φ-Balancing for MoE Training | [phi-balancing-moe](phi-balancing-moe/) | Principled population-level load balancing via convex potential φ + mirror descent on EMA of routing probs; negative entropy mirror map gives 7× lower Gini, promotes domain specialization; one-line change beats ST-MoE/loss-free across scales |
+| ConvexTok | [convextok](convextok/) | Reformulates tokenizer construction as a linear program (NP-hard → LP relaxation on a token-edge DAG); provably within 1% of optimal compression at common vocab sizes, beats BPE on bits-per-byte; LP nearly integral at 256k (90.5%) |
 | Attention Residuals | [attention-residuals](attention-residuals/) | Learned softmax attention over depth replaces fixed residual connections, +7.5 points on GPQA-Diamond for 48B model |
 | Mamba-3 | [mamba-3](mamba-3/) | Exponential-trapezoidal discretization + complex-valued SSM with data-dependent RoPE, +1.8 points over Gated DeltaNet at 1.5B |
 | TriAttention | [triattention](triattention/) | Trigonometric KV cache compression exploiting pre-RoPE Q/K clustering, 2.5x throughput or 10.7x KV memory reduction |
 | TurboQuant | [turboquant](turboquant/) | Random rotation + optimal per-coordinate quantization for 4.5-6x KV cache compression with zero quality loss at 3.5 bits |
 | DroPE | [drope-context-extension](drope-context-extension/) | Removes RoPE after pretraining and recalibrates, outperforming all RoPE-scaling methods on long-context benchmarks |
+| RoPE Fails in Long Contexts, Provably | [rope-fails-long-context](rope-fails-long-context/) | Proves RoPE loses both locality bias (position inversion → 50% probability) and token-relevance consistency as context grows; four failure modes; RoPE base B trades position vs token identification; 6 LLMs fail by 4K tokens |
 | Positional Encoding & Length Generalization | [positional-encoding-length-generalization](positional-encoding-length-generalization/) | Systematic PE comparison finding NoPE outperforms all explicit methods at length generalization (MRR 0.69 vs 0.55) |
 | Nemotron 3 Super | [nemotron-3-super](nemotron-3-super/) | 120B/12B-active hybrid Mamba-Attention MoE with 2.2-7.5x higher throughput via LatentMoE and Multi-Token Prediction |
 | Megatron Core MoE | [megatron-core-moe](megatron-core-moe/) | Scalable MoE training via Parallel Folding, DeepEP, CUDA Graphs, and FP8/FP4, achieving 1,233 TFLOPS/GPU on GB300 |
@@ -81,3 +95,22 @@
 | Neural Garbage Collection | [neural-garbage-collection](neural-garbage-collection/) | LM learns to evict KV cache entries via RLVR alongside reasoning; 2-3x cache compression with 49.6% vs 21.2% best baseline on Countdown |
 | The Format Tax | [the-format-tax](the-format-tax/) | Structured output (JSON/XML/MD/LaTeX) degrades reasoning 3-10 pp in open-weight models; 92% from the prompt, not GCD; 2-Turn decoupling recovers most loss |
 | Too Sharp, Too Sure | [too-sharp-too-sure-calibration](too-sharp-too-sure-calibration/) | ECE tracks loss curvature throughout training via shared margin-tail functional; CalMO training objective reduces ECE by up to 71% (Muon: 0.065→0.019) |
+| Stochastic KV Routing | [stochastic-kv-routing](stochastic-kv-routing/) | Random cross-layer attention during training enables flexible depth-wise KV cache sharing at inference; 50-75% cache reduction with preserved or improved QA F1, regularization bonus |
+| Abstract Chain-of-Thought | [abstract-cot-latent-reasoning](abstract-cot-latent-reasoning/) | Replaces verbal CoT with short sequences from a learned abstract vocabulary; bottlenecked SFT warm-up + GRPO yields up to 11.6x fewer reasoning tokens matching SFT+RL performance |
+| Beyond MuP Pt.4: Parameter Stability (Jianlin Su blog) | [su-beyond-mup-4-parameter-stability](su-beyond-mup-4-parameter-stability/) | Unified framework for maintaining parameter norms throughout training: Post Clip vs Pre Decay (generalizes weight decay to any norm); under spectral norm reduces to SVC and spectral weight decay |
+
+## Financial Markets & Econophysics
+*Physics-inspired and quantitative models of market dynamics*
+
+| Paper | Folder | One-Line Summary |
+|---|---|---|
+| Modeling Stock Market Dynamics Based on Conservation Principles | [stock-market-conservation-principles](stock-market-conservation-principles/) | Deterministic model using asset conservation + two trader types (fundamental + momentum) yields a neutral differential equation that bifurcates from stability through complex oscillations to apparent chaos |
+
+## Surveys
+*Cross-paper synthesis on a topic, with taxonomy and reading lists*
+
+| Survey | Folder | Scope |
+|---|---|---|
+| MoE Architecture Evolution: Mixtral to 2026 | [surveys/moe-architecture-evolution](surveys/moe-architecture-evolution/) | Open-weight MoE LLMs Dec 2023 → 2026: architectures (Mixtral, DeepSeek arc, Qwen3, Llama 4, Kimi K2, GPT-OSS), routing/balancing, FP8 training, MLA/MTP/EP serving, SFT/RL on MoE; consensus design + open questions |
+| Beyond MuP Series Walkthrough (Jianlin Su) | [su-beyond-mup-series-walkthrough](su-beyond-mup-series-walkthrough/) | Plain-English walkthrough of all 4 posts: three stability conditions → Muon for linear → per-layer optimizers (Embedding/LM Head/RMSNorm γ) → Post Clip / Pre Decay; one principle, six algorithms |
+| LLM Persistence in Long-Horizon Tasks | [surveys/llm-persistence-long-horizon](surveys/llm-persistence-long-horizon/) | Methods (prompting, decoding, training, scaffolding) that prevent premature termination and unproductive thrashing across multi-step tasks |
